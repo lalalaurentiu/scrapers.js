@@ -10,16 +10,22 @@ const { Counties } = require("../getTownAndCounty.js");
 const _counties = new Counties();
 
 const getJobs = async () => {
-  let url =
-    "https://careers.hilti.group/ro/locuri-de-munca/?search=&country=20000441&pagesize=100#results";
-
   const jobs = [];
-  const headers = {
-    "User-Agent":
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/",
+
+  const apiUrl = "https://careers.hilti.group/en/jobs/?country=20000441&page=1";
+
+  const scraper = new Scraper(apiUrl);
+  scraper.config.headers = {
+    ...scraper.config.headers,
+    Accept:
+      "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.5",
+    "Accept-Encoding": "gzip, deflate, br",
+    Connection: "keep-alive",
+    "Upgrade-Insecure-Requests": "1",
+    "Cache-Control": "max-age=0",
   };
-  const scraper = new Scraper(url);
-  scraper.config.headers = { ...scraper.config.headers, ...headers };
+
   const res = await scraper.get_soup("HTML");
 
   const items = res.findAll("div", { class: "card-job" });
@@ -28,18 +34,12 @@ const getJobs = async () => {
     const job_title = job.find("a").text.trim();
     const job_link = `https://careers.hilti.group${job.find("a").attrs.href}`;
     let city = translate_city(
-      job.find("li", { class: "list-inline-item" }).text.split(",")[0].trim()
+      job.find("li", { class: "list-inline-item" }).text.split(",")[0].trim(),
     );
 
     const { city: c, county: co } = await _counties.getCounties(city);
 
-    const job_element = generateJob(
-      job_title,
-      job_link,
-      "Romania",
-      c,
-      co
-    );
+    const job_element = generateJob(job_title, job_link, "Romania", c, co);
 
     jobs.push(job_element);
   }
